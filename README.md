@@ -1,36 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Next.js Authentication with NextAuth.js
 
-## Getting Started
+Este projeto demonstra como configurar autenticação em um aplicativo Next.js usando o **App Router** e **NextAuth.js**.
 
-First, run the development server:
+## 🚀 Tecnologias
+- Next.js (App Router)
+- NextAuth.js
+- Tailwind CSS (opcional para estilização)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 📌 Configuração
+
+### 1️⃣ Clone o repositório
+```sh
+git clone https://github.com/seu-usuario/seu-repositorio.git
+cd seu-repositorio
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2️⃣ Instale as dependências
+```sh
+npm install
+# ou
+yarn install
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 3️⃣ Configure variáveis de ambiente
+Crie um arquivo `.env.local` na raiz do projeto e adicione:
+```sh
+NEXTAUTH_SECRET=uma_chave_segura
+NEXTAUTH_URL=http://localhost:3000
+# Configuração do provedor de autenticação (exemplo: GitHub)
+GITHUB_CLIENT_ID=seu_client_id
+GITHUB_CLIENT_SECRET=seu_client_secret
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4️⃣ Configure o NextAuth.js
+Crie o arquivo `app/api/auth/[...nextauth]/route.ts`:
+```ts
+import NextAuth from "next-auth";
+import GitHubProvider from "next-auth/providers/github";
+import { NextAuthOptions } from "next-auth";
 
-## Learn More
+export const authOptions: NextAuthOptions = {
+  providers: [
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+  ],
+  secret: process.env.NEXTAUTH_SECRET,
+};
 
-To learn more about Next.js, take a look at the following resources:
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 5️⃣ Criando uma Página de Login
+Crie `app/login/page.tsx`:
+```tsx
+"use client";
+import { signIn } from "next-auth/react";
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+export default function Login() {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <button
+        onClick={() => signIn("github")}
+        className="px-4 py-2 bg-black text-white rounded-md"
+      >
+        Login com GitHub
+      </button>
+    </div>
+  );
+}
+```
 
-## Deploy on Vercel
+### 6️⃣ Protegendo uma Página (Exemplo: Dashboard)
+Crie `app/dashboard/page.tsx`:
+```tsx
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+export default async function Dashboard() {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+  return <h1>Bem-vindo, {session.user?.email}!</h1>;
+}
+```
+
+### 7️⃣ Rodando o projeto
+```sh
+npm run dev
+# ou
+yarn dev
+```
+Abra [http://localhost:3000](http://localhost:3000) no navegador e teste a autenticação!
+
+---
+
+## 🔒 Protegendo Várias Páginas
+Se precisar proteger todas as páginas dentro de uma pasta, crie um `layout.tsx`:
+```tsx
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
+
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+  return <>{children}</>;
+}
+```
+Isso protege todas as páginas dentro de `app/dashboard/` automaticamente.
+
+---
+
+## 🎯 Conclusão
+Agora você tem autenticação funcional no **Next.js App Router** usando **NextAuth.js**! Se precisar de mais provedores, basta adicioná-los em `authOptions`.
+
+💡 **Dúvidas ou sugestões? Abra uma issue no repositório!** 🚀
+
