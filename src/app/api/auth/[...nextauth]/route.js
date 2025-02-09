@@ -1,31 +1,78 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import GithubProvider from "next-auth/providers/github"
+import { PrismaClient } from "@prisma/client"
+import bcrypt from "bcryptjs"
+
+const prisma = new PrismaClient()
 
 export const authOptions = {
   providers: [
+    GithubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text", placeholder: "your@email.com" },
-        password: { label: "Password", type: "password" }
+        email: { label: "Email", type: "email" },
+        password: { label: "Senha", type: "password" },
       },
       async authorize(credentials) {
-        const user = { id: "1", name: "John Doe", email: "your@email.com", password: "123456" }
-        
-        if (credentials?.email === user.email && credentials?.password === user.password) {
-          return user
+        if (!credentials.email || !credentials.password) {
+          throw new Error("Preencha todos os campos.")
         }
-        return null 
-      }
-    })
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+        })
+
+        if (!user) {
+          throw new Error("Usuário não encontrado.")
+        }
+
+        const isValidPassword = await bcrypt.compare(credentials.password, user.password)
+        if (!isValidPassword) {
+          throw new Error("Senha incorreta.")
+        }
+
+        return user
+      },
+    }),
   ],
+  session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
   },
-  session: {
-    strategy: "jwt",
-  },
   secret: process.env.NEXTAUTH_SECRET,
+  callbacks: {
+    async signIn({ user, account }) {
+      if (account.provider === "github") {
+        await prisma.user.upsert({
+          where: { email: user.email },
+          update: {
+            name: user.name,
+            image: user.image,
+          },
+          create: {
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          },
+        })
+      }
+      return true
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.sub
+      }
+      return session
+    },
+    async redirect(url, baseUrl) {
+      return baseUrl;
+    }
+  },
 }
 
 const handler = NextAuth(authOptions)

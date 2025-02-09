@@ -8,8 +8,8 @@ export default function RootLayout({ children }) {
   return (
     <SessionProvider>
       <html lang="en">
-        <body className="p-4 flex flex-col w-full min-h-screen">
-          <header className="flex gap-4">
+        <body className=" flex flex-col w-full min-h-screen bg-gray-300 bg-gradient-to-br from-blue-500 to-purple-600">
+          <header className="flex gap-4 fixed p-4">
             <Link href={"/"}>Inicio</Link>
             <Link href={"/dashboard"}>dashboard</Link>
           </header>
