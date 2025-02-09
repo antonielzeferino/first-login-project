@@ -13,7 +13,7 @@ export default function AuthButton() {
         <div>
           <p className="text-gray-700 mb-4">Signed in as <span className="font-semibold">{session.user?.email}</span></p>
           <button 
-            onClick={() => signOut()} 
+            onClick={() => signOut({redirect: false})} 
             className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-all"
           >
             Sign out
