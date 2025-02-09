@@ -28,7 +28,6 @@ export async function POST(req) {
       email,
       password: hashedPassword,
       name,
-      provider: "credentials",
     },
   })
 
